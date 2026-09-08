@@ -37,7 +37,11 @@ own name spelling:
 - **Base mode** — AI SQL functions `AI_COMPLETE` / `SNOWFLAKE.CORTEX.COMPLETE`. Names are
   UPPERCASE and sometimes carry a `1P-` provider prefix (e.g. `OPENAI-1P-GPT-5.6-SOL`).
 - **Agentic mode** — the curated allow-list enforced by the Cortex Code Agent. Names are
-  lowercase and often drop the `1p-` prefix (`openai-gpt-5.6-sol`).
+  lowercase and often drop the `1p-` prefix (`openai-gpt-5.6-sol`). Availability is gated by
+  the account allowlist (`CORTEX_MODELS_ALLOWLIST`), the region, and the cross-region setting
+  (`CORTEX_ENABLED_CROSS_REGION`). The CoCo docs publish a supported-models list (see
+  References), but it lags the live set — the docs themselves say the interactive `/model`
+  command / model picker is the always-current, authoritative source.
 
 Base-callable does **not** imply agentic-callable. Presence in `SHOW CORTEX BASE MODELS`
 does not even guarantee base-callable — some listed models return `unknown model` from
@@ -64,9 +68,15 @@ does not even guarantee base-callable — some listed models return `unknown mod
    `SHOW CORTEX BASE MODELS;` then filter with
    `SELECT "name","lifecycle_status","in_region_availability","cross_region_availability","legacy_date","eol_date" FROM TABLE(RESULT_SCAN(LAST_QUERY_ID())) WHERE "name" ILIKE '%<pattern>%';`
    Interpret `lifecycle_status`: `GA` = usable; `PUPR`/`PRPR` = preview, usable if the probe
-   succeeds; `LEGACY` = deprecated but callable until `eol_date` (flag it); `EOL` = not
-   callable; `INTERNAL`/`None` = probe to confirm. `in_region_availability: []` with a
-   populated `cross_region_availability` means it needs cross-region inference enabled.
+   succeeds; `LEGACY` = account-usage-dependent — an account that **already called the model
+   before its `legacy_date`** keeps access until `eol_date`, but an account that **never used
+   it can no longer start** (calls fail), so a legacy model is often *not* addable to a new
+   benchmark — the Step 2 probe is the source of truth; `EOL` = unavailable to every account
+   regardless of prior use; `INTERNAL`/`None` = probe to confirm. `in_region_availability: []`
+   with a populated `cross_region_availability` means the model runs only via cross-region
+   inference — it fails unless the account has cross-region inference enabled (some models,
+   e.g. `gemini-3.1-pro` and `openai-gpt-5-mini`, are cross-region only). See the docs
+   reference below for authoritative lifecycle definitions and the per-region matrix.
 
 2. **Confirm base mode with a real call** — Set a warehouse only if none is active, then
    `SELECT AI_COMPLETE('<base-model-name>', 'Reply with the single word: ok') AS resp;`
@@ -77,8 +87,11 @@ does not even guarantee base-callable — some listed models return `unknown mod
    the CLI error dumps every allowed agentic model:
    `cortex exec -m __definitely_not_a_model__ --no-history --max-turns 1 "Reply with exactly: ok" 2>&1 | tail -20`
    The error body contains `- Available models: <comma-separated lowercase list>`. That
-   list **is** the allow-list. Match your targets against it — this avoids probing each
-   model separately and spending agent turns.
+   list **is** the allow-list (equivalent to the interactive `/model` command the CoCo docs
+   call authoritative), and it also echoes the two gating controls — `Model allowlist:`
+   (`CORTEX_MODELS_ALLOWLIST`) and `Cross-region setting:` (`CORTEX_ENABLED_CROSS_REGION`).
+   Match your targets against it — this avoids probing each model separately and spending
+   agent turns, and reflects models newer than the published docs list.
 
 4. **Confirm a specific target agentically** — For a target you want verified end-to-end:
    `cortex exec -m <agentic-model-name> --no-history --max-turns 3 "Reply with exactly the word ok and nothing else. Do not call any tools." 2>&1 | tail -4`
@@ -94,16 +107,23 @@ does not even guarantee base-callable — some listed models return `unknown mod
 
 6. **Report the matrix** — One row per model: **Model | Base? | Agentic? | Lifecycle |
    Notes**. State explicitly whether the user can do base-only or full base + agentic
-   benchmarking, and flag any `LEGACY`/`EOL` models with their dates.
+   benchmarking. Flag `EOL` models as unusable, and for `LEGACY` models note that access
+   is account-usage-dependent (usable only if the account already called the model before
+   its `legacy_date`) and include `legacy_date`/`eol_date`.
 
 ## Common Mistakes
 
 - **Trusting `SHOW` over a probe** — A model can appear in `SHOW CORTEX BASE MODELS` and
   still return `unknown model` from `AI_COMPLETE`. The live call is the source of truth.
+- **Misreading `LEGACY` as "still callable for everyone"** — Legacy access is per-account:
+  an account that never used the model before its `legacy_date` **cannot start** and its
+  calls fail. Do not assume a legacy model is addable to a new benchmark — probe it.
 - **Assuming base implies agentic** — They are separate allow-lists that drift
   independently. Always harvest the agentic list fresh (Step 3); never cache it.
 - **Comparing raw names** — Base is UPPERCASE with an optional `1P-` prefix; agentic is
   lowercase without it. Normalize before matching or you will report false negatives.
+- **Ignoring cross-region-only models** — A model with empty `in_region_availability` but a
+  populated `cross_region_availability` fails unless cross-region inference is enabled.
 - **Probing every model agentically** — Wastes agent turns. Harvest the whole list once,
   then only probe the specific targets that matter.
 
@@ -134,3 +154,40 @@ warehouse to use before probing.
 
 ⚠️ **STOPPING POINT** — If the user cares about only one surface (base OR agentic), skip
 the other probe and say so, to avoid spending agent turns unnecessarily.
+
+## References
+
+### Base mode (AI SQL)
+- **Models and regional availability for Cortex AI Functions** —
+  <https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql-regional-availability>
+  Authoritative companion to `SHOW CORTEX BASE MODELS`: per-region in-region vs cross-region
+  matrix, context-window / max-output-token limits, and the model-lifecycle definitions.
+
+### Agentic mode (Cortex Code / CoCo)
+- **CoCo CLI — Supported models + Cloud regions** —
+  <https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-cli>
+  Published supported-models list and a cross-region availability table (model ×
+  `CORTEX_ENABLED_CROSS_REGION` scope). Defers to the in-session `/model` command for the
+  full, current list — treat the live list (Step 3 probe) as authoritative when they differ.
+- **CoCo Desktop — Supported models** —
+  <https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-desktop>
+  States the model picker is the "authoritative, always-current list"; availability depends
+  on region, `CORTEX_MODELS_ALLOWLIST`, and cross-region setting.
+- **Configure model settings (default orchestration model)** —
+  <https://docs.snowflake.com/en/user-guide/cortex-code/configure-model-settings>
+- **CoCo in Snowsight — model selection & cross-region** —
+  <https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code-snowsight>
+
+### Lifecycle & cross-region
+- **Lifecycle (from the docs):** Snowflake retires models in two stages —
+  - `LEGACY`: after the `legacy_date`, an account that used the model before that date keeps
+    access until `eol_date`; an account that never used it can no longer start (calls fail).
+  - `EOL`: after the `eol_date`, the model is unavailable to every account regardless of
+    prior use.
+  `SHOW CORTEX BASE MODELS` reports `lifecycle_status`, `legacy_date`, `eol_date`.
+- **Cross-region inference** —
+  <https://docs.snowflake.com/en/user-guide/snowflake-cortex/cross-region-inference>
+  Required for models not available in the account's region (empty `in_region_availability`);
+  also required for CoCo to reach models outside the account's region. Set via
+  `ALTER ACCOUNT SET CORTEX_ENABLED_CROSS_REGION = '<scope>'` (e.g. `AWS_GLOBAL`,
+  `AZURE_GLOBAL`, `ANY_REGION`).
