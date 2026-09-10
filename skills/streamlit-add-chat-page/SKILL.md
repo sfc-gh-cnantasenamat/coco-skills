@@ -1,26 +1,29 @@
 ---
 name: streamlit-add-chat-page
 title: Add Chat Page to Streamlit
-summary: Build a Cortex Analyst chat page for a Streamlit-in-Snowflake app — semantic view, fuzzy literal resolution, and a robust chat UI.
+summary: "Build a chat page for a Streamlit-in-Snowflake app: structured Q&A (Cortex Analyst) or document RAG (Cortex Search), with a robust chat UI."
 description: |
-  Build a natural-language 'chat with your data' page for a Streamlit-in-Snowflake
-  (SiS) app, powered by Cortex Analyst over a semantic view. Covers the semantic
-  layer (flattened base view + semantic view with named metrics + Cortex Search
-  literal resolution) and the chat UI (Analyst REST call, multi-turn history,
-  results/answer expanders, empty-result handling, feedback logging, and a
-  regression harness). Includes a robustness checklist and general-vs-niche
-  edge-case guidance.
+  Build a natural-language chat page for a Streamlit-in-Snowflake (SiS) app, in
+  either of two flavors depending on the data:
+    * STRUCTURED data (tables, metrics, dashboards) -> Cortex Analyst over a
+      semantic view (named metrics, synonyms, Cortex Search literal resolution,
+      verified queries) that generates and runs SQL.
+    * UNSTRUCTURED text (documents, policies, transcripts, chunked text) -> Cortex
+      Search RAG: retrieve relevant chunks and synthesize a grounded, cited answer.
+  Both share a robust chat UI: multi-turn history, results/answer/sources expanders,
+  guardrails, empty-result handling, and feedback logging.
 
-  Use when: adding a chat or conversational-analytics page to a SiS app, building a
-  Cortex Analyst UI, or letting users ask questions about a table/dashboard in plain
-  English.
+  Use when: adding a chat or conversational-analytics page to a SiS app, a "chat with
+  your data" or "chat with your documents" UI, a Cortex Analyst text-to-SQL page, or a
+  RAG document-Q&A page.
 
-  Triggers: cortex analyst chat, chat page, chat with your data, streamlit chat
-  snowflake, conversational analytics, natural language query page, text-to-sql app,
-  ask questions about data, add chat to streamlit.
+  Triggers: cortex analyst chat, cortex search chat, chat page, chat with your data,
+  chat with your documents, RAG chat, document Q&A, streamlit chat snowflake,
+  conversational analytics, text-to-sql app, retrieval augmented generation, add chat
+  to streamlit.
 
-  Do NOT use for: free-form document Q&A / RAG over unstructured text (use Cortex
-  Search with an agent), or a single fixed dashboard chart (just write the SQL).
+  Do NOT use for: a single fixed dashboard chart (just write the SQL); or an agent that
+  must orchestrate MANY tools across domains (use a Cortex Agent).
 prompt: Add a Cortex Analyst chat page to my Streamlit-in-Snowflake app.
 language: en
 status: Published
@@ -34,26 +37,33 @@ tools:
   - Edit
 ---
 
-# Cortex Analyst Chat Page (Streamlit in Snowflake)
+# Chat Page for Streamlit in Snowflake
 
-Build a "chat with your data" page: the user asks in plain English, **Cortex
-Analyst** turns it into SQL against a **semantic view**, the page runs it and
-shows results + a short natural-language answer. Two parts: a **semantic layer**
-(server-side) and a **chat page** (app code).
+Build a "chat with your data" page for a SiS app. Two flavors, by data type:
+- **Structured** (tables, metrics) → **Path A: Cortex Analyst** turns the question into
+  SQL against a **semantic view**, runs it, and shows results + a short answer.
+- **Unstructured** (documents, chunked text) → **Path B: Cortex Search RAG** retrieves the
+  most relevant chunks and synthesizes a **grounded, cited** answer.
 
-Templates: `references/semantic_layer.sql`, `references/chat_page.py`, `references/eval_harness.py`.
+Both share the same chat-UI patterns (multi-turn, expanders, feedback, guardrails).
 
-## When to use
-- Adding a chat / NL-query page to an existing SiS dashboard or data app.
-- Exposing a table, view, or metric set to non-analysts conversationally.
+Templates: `references/semantic_layer.sql` + `references/chat_page.py` + `references/eval_harness.py`
+(Path A); `references/cortex_search_rag.sql` + `references/rag_chat_page.py` (Path B).
+
+## Choose your path
+| Your data | Path | Engine |
+|---|---|---|
+| Rows/metrics in tables you can aggregate | **A** | Cortex Analyst + semantic view (NL→SQL) |
+| Free text: docs, policies, transcripts, wiki | **B** | Cortex Search over chunks + LLM synthesis (RAG) |
+| Both, in one chat | — | A **Cortex Agent** with both an Analyst tool and a Search tool (beyond this skill) |
 
 ## When NOT to use
-- Free-form document Q&A / RAG over unstructured text → use Cortex Search (agent), not Analyst.
-- A fixed dashboard chart → just write the SQL; a chat page is overkill.
+- A single fixed dashboard chart → just write the SQL; a chat page is overkill.
+- One chat that must orchestrate many tools across domains → use a Cortex Agent.
 
-## Workflow
+## Path A — Structured data (Cortex Analyst)
 
-### Step 1 — Model the semantic layer
+### Step A1 — Model the semantic layer
 1. **Flatten to ONE view.** Do all joins and pre-derive any parsed/computed
    columns (regex splits, flags, per-row composites) in a single SQL view. This
    keeps the semantic view **single-table**: no relationships to model, and Analyst
@@ -75,7 +85,7 @@ Templates: `references/semantic_layer.sql`, `references/chat_page.py`, `referenc
      filters, sensible defaults) so the model doesn't reinvent them.
 4. **⚠️ STOP** — show the DDL and get approval before deploying.
 
-### Step 2 — Fix literal resolution with Cortex Search (the big accuracy win)
+### Step A2 — Fix literal resolution with Cortex Search (the big accuracy win)
 Snowflake string `=` is **case-sensitive**. Analyst will emit
 `WHERE category = 'cortex search'` for a stored value of `Cortex Search` → **zero
 rows, no answer**. Fix it structurally:
@@ -86,7 +96,7 @@ rows, no answer**. Fix it structurally:
 - **Low-cardinality (1-10):** provide sample values instead (no service needed).
 - Do this for every user-facing filter column (categories, model/product names, …).
 
-### Step 3 — Build the chat page (`pages/chat.py`)
+### Step A3 — Build the chat page (`pages/chat.py`)
 Adapt `references/chat_page.py`. It implements:
 - **Analyst REST call:** in SiS use `_snowflake.send_snow_api_request("POST",
   "/api/v2/cortex/analyst/message", {}, {}, body, None, 60000)` with
@@ -104,7 +114,7 @@ Adapt `references/chat_page.py`. It implements:
 - **Feedback loop:** 👍/👎 buttons + a `CHAT_FEEDBACK` table logging question, generated
   SQL, request_id, and status — mine it later for new verified queries and accuracy tracking.
 
-### Step 4 — Deploy, verify, guard against regressions
+### Step A4 — Deploy, verify, guard against regressions
 - Deploy the app (SiS runs **owner's rights**, so the app's owner role must have
   access to the semantic view + Cortex).
 - Verify the model BEFORE trusting the UI:
@@ -114,7 +124,40 @@ Adapt `references/chat_page.py`. It implements:
   after any semantic-view change to catch questions that silently stop working.
 - **⚠️ STOP** — confirm end-to-end before finishing.
 
+## Path B — Unstructured docs (Cortex Search RAG)
+Use `references/cortex_search_rag.sql` + `references/rag_chat_page.py`.
+
+### Step B1 — Chunk the documents & create the search service
+1. **Get a chunks table** (one row per chunk + source metadata for citations). If you
+   only have raw docs: extract text (`AI_PARSE_DOCUMENT` for PDFs/images) then split with
+   `SNOWFLAKE.CORTEX.SPLIT_TEXT_RECURSIVE_CHARACTER`. **Chunk size** ~300-1800 chars with
+   ~10-15% overlap: smaller = more precise retrieval, larger = more context per chunk.
+2. **Create a Cortex Search service** `ON` the chunk-text column, with `ATTRIBUTES` for
+   the metadata you'll cite (title, url, doc_id) and a `TARGET_LAG` to keep it fresh.
+3. **⚠️ STOP** — verify retrieval quality with `SEARCH_PREVIEW` (are the top chunks
+   actually relevant?) before wiring the app.
+
+### Step B2 — Build the RAG chat page (`pages/chat.py`)
+Adapt `references/rag_chat_page.py`. It implements:
+- **Retrieve:** query the service (Python `Root().…cortex_search_services[...].search()`;
+  `SEARCH_PREVIEW` SQL fallback) for the top-K chunks.
+- **Synthesize (grounded):** feed ONLY the retrieved chunks to `AI_COMPLETE` with
+  instructions to answer **only from context, cite sources by [n], and say "I don't
+  know" when the answer isn't present** — this is what prevents hallucination.
+- **Cite:** a **Sources** expander lists each chunk with its title/link.
+- Shared UI: multi-turn context, example buttons, feedback logging, and a
+  **no-relevant-results** message when retrieval is empty.
+
+### Step B3 — Deploy & verify
+- Deploy the app (owner's rights: the owner role needs `USAGE` on the search service + Cortex).
+- Ask a question whose answer you know and confirm the answer is correct **and** the cited
+  chunks actually support it (grounding check).
+- **⚠️ STOP** — confirm end-to-end before finishing.
+
 ## Robustness checklist
+**Shared (both paths):** SELECT-only/grounded execution • empty-result handling • multi-turn context • feedback logging • deploy under owner's rights with Cortex + object access.
+
+**Path A (Analyst):**
 - [ ] Named metrics for every computed value (no formulas left to the LLM).
 - [ ] View grain verified — no one-to-many fan-out; entity counts use `COUNT(DISTINCT)`.
 - [ ] NULLs COALESCE'd on filter/group dimensions; ratio metrics guard div-by-zero (`NULLIF`).
@@ -125,20 +168,28 @@ Adapt `references/chat_page.py`. It implements:
 - [ ] SELECT-only execution + row cap + query safety.
 - [ ] Warnings + clarification (no-SQL) responses handled gracefully.
 - [ ] Empty-result path lists valid values.
-- [ ] Feedback logging in place.
 - [ ] Gold-question eval harness passes before/after changes.
 
-## Edge cases: general vs niche
-**Universal (handled by the templates — apply to any dataset):**
-- Grain / fan-out double-counting; NULL dimensions & metrics; divide-by-zero; case/literal
-  mismatch; out-of-scope questions; large results; summary-prompt input treated as untrusted.
+**Path B (RAG):**
+- [ ] Chunk size + overlap tuned; source metadata kept for citations.
+- [ ] Synthesis prompt is **strictly grounded** (answer only from context; "I don't know" otherwise).
+- [ ] Answers cite sources; a Sources expander shows the retrieved chunks/links.
+- [ ] No-relevant-results path returns a clear message (not a hallucinated answer).
+- [ ] `TARGET_LAG` set so the index stays fresh as documents change.
 
-**Data-shape-dependent (handle if your data has that shape):**
-- Time-series/trends → add a real date dimension + a line chart (the template's chart
-  heuristic only does bars).
-- Over-fuzzy Cortex Search matches → tighten dimension descriptions / cardinality.
-- Ambiguous synonyms (two metrics both "score") → disambiguate names/synonyms.
-- Non-English questions → have the summary model answer in the question's language.
+## Edge cases: general vs niche
+**Universal (handled by the templates):**
+- Grain/fan-out double-counting; NULLs; divide-by-zero; case/literal mismatch; out-of-scope
+  questions; large results; untrusted summary-prompt input (Path A). Empty retrieval, ungrounded
+  answers, and missing citations (Path B).
+
+**Data-shape-dependent (handle if applicable):**
+- Time-series/trends → add a date dimension + line chart (Path A chart heuristic only does bars).
+- Over-fuzzy Cortex Search matches → tighten descriptions / cardinality.
+- Ambiguous synonyms (two metrics both "score") → disambiguate.
+- Non-English questions → answer in the question's language.
+- RAG retrieval quality: low recall → smaller chunks / higher K / hybrid filters; conflicting
+  chunks → ask the model to note disagreement; long chunks → summarize before synthesis.
 
 **Niche (don't re-teach — model with the semantic-view `patterns` skill):**
 - Period-over-period (YoY/MoM/SPLY), rolling/YTD windows, fiscal calendars.
