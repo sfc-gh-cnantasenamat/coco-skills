@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "camera": "camera.mp4",
+  "screen": "screen.mp4",
+  "camera_offset_seconds": 0,
+  "screen_offset_seconds": 0,
+  "fps": "24000/1001",
+  "frames": 1440,
+  "tutorial_start": 240,
+  "outro_start": 1200,
+  "transition_frames": 30,
+  "proxy_height": 720,
+  "final_height": 2160,
+  "output_dir": "edits",
+  "revision": "v1",
+  "encoder": "libx264",
+  "assume_bt709_for_untagged": false,
+  "audio": {
+    "mode": "segments",
+    "camera": "camera.mp4",
+    "tutorial": "screen-audio.mp4",
+    "camera_offset_seconds": 0,
+    "tutorial_offset_seconds": 0
+  },
+  "style": {
+    "screen_inset": 0,
+    "corner_radius": 0,
+    "presenter_diameter": 0.2666666667,
+    "presenter_margin": 0.05,
+    "body_center_x": 0.5,
+    "background_colors": ["#00FFFF", "#9810FA"]
+  }
+}
