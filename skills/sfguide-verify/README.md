@@ -1,4 +1,4 @@
-# Verify SF Guide
+# SFGuide Verify
 
 A Cortex Code skill that checks a Snowflake developer guide (sfguide/quickstart) and its companion repo before shipping.
 
@@ -14,14 +14,14 @@ Each stage stops for your acknowledgement before moving on.
 ## Usage
 
 ```
-$verify-sfguide Verify my sfguide at ~/guides/my-guide
+$sfguide-verify Verify my sfguide at ~/guides/my-guide
 ```
 
 You'll be asked for the guide path, the companion repo path, your GitHub user, and a Snowflake connection to a test account.
 
 ## Related
 
-- `ship-sfguide` runs this skill first, then polishes and publishes the guide.
+- `sfguide-ship` runs this skill first, then polishes and publishes the guide.
 
 ## Author
 

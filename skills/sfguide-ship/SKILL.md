@@ -1,9 +1,9 @@
 ---
-name: ship-sfguide
-id: ship-sfguide
+name: sfguide-ship
+id: sfguide-ship
 title: Ship a Snowflake Guide
 summary: Verify, polish, and open PRs for a Snowflake developer guide and its companion repo in Snowflake-Labs.
-description: "End-to-end workflow for shipping a Snowflake sfguide (quickstart) and its companion project: delegates verification to verify-sfguide, then handles content polish, humanizing language, a pre-review checkpoint, repo hand-off, and pushing PRs to Snowflake-Labs repos. Use when: ship sfguide, publish sfguide, push quickstart, sfguide is ready to ship, submit sfguide, ready to publish quickstart, ship the guide, sfguide shipping checklist. Triggers: ship sfguide, publish sfguide, submit quickstart, push sfguide, sfguide done, ready to ship, sfguide PR. Do NOT use for drafting a new guide or for verification only (use verify-sfguide)."
+description: "End-to-end workflow for shipping a Snowflake sfguide (quickstart) and its companion project: delegates verification to sfguide-verify, then handles content polish, humanizing language, a pre-review checkpoint, repo hand-off, and pushing PRs to Snowflake-Labs repos. Use when: ship sfguide, publish sfguide, push quickstart, sfguide is ready to ship, submit sfguide, ready to publish quickstart, ship the guide, sfguide shipping checklist. Triggers: ship sfguide, publish sfguide, submit quickstart, push sfguide, sfguide done, ready to ship, sfguide PR. Do NOT use for drafting a new guide or for verification only (use sfguide-verify)."
 authors: Chanin Nantasenamat
 type: snowflake
 status: beta
@@ -20,11 +20,11 @@ prompt: "Ship my sfguide at ~/guides/my-guide"
 language: en
 ---
 
-# Ship SF Guide
+# SFGuide Ship
 
 ## Purpose
 
-Polish + publish pipeline for an sfguide and its companion project. Delegates verification and fixes to `verify-sfguide`, then runs sequential stages: companion repo hand-off, content/clarity audit, architecture diagram, humanizing, a pre-review checkpoint, repo setup confirmation, and pushing PRs to `Snowflake-Labs/sfquickstarts` and `Snowflake-Labs/snowflake-demo-notebooks`.
+Polish + publish pipeline for an sfguide and its companion project. Delegates verification and fixes to `sfguide-verify`, then runs sequential stages: companion repo hand-off, content/clarity audit, architecture diagram, humanizing, a pre-review checkpoint, repo setup confirmation, and pushing PRs to `Snowflake-Labs/sfquickstarts` and `Snowflake-Labs/snowflake-demo-notebooks`.
 
 Placeholders used below:
 - `<your-github-user>`: the GitHub account that hosts the staging repos and the forks
@@ -66,7 +66,7 @@ If the companion project path does not exist, report it as missing and stop. If 
 gh api repos/<your-github-user>/sfguide-<id> --jq '.html_url' 2>&1
 ```
 
-If it doesn't exist yet, create it now so verify-sfguide has somewhere to push fixes.
+If it doesn't exist yet, create it now so sfguide-verify has somewhere to push fixes.
 
 **The guide itself is built and lives at `<your-github-user>/<id>` throughout the pipeline** -- a separate staging repo from the companion project, named without the `sfguide-` prefix (`sfguide-<id>` = code, `<id>` = guide markdown/assets). Unlike the companion repo, this one has no hand-off step: `sfquickstarts` is a shared monorepo. Stage 6 opens the PR into `Snowflake-Labs/sfquickstarts`, sourcing content from this staging repo. Check whether it already exists:
 
@@ -80,9 +80,9 @@ If it doesn't exist yet, create it now.
 
 ## Verification
 
-**Load the `verify-sfguide` skill and run it** with the paths collected above. Wait for it to complete all 4 of its stages (readiness audit, end-to-end verification, sync check, fix blockers) before continuing.
+**Load the `sfguide-verify` skill and run it** with the paths collected above. Wait for it to complete all 4 of its stages (readiness audit, end-to-end verification, sync check, fix blockers) before continuing.
 
-After verify-sfguide completes, push any guide changes it produced to `<your-github-user>/<id>` (the guide's staging repo).
+After sfguide-verify completes, push any guide changes it produced to `<your-github-user>/<id>` (the guide's staging repo).
 
 ---
 
@@ -90,7 +90,7 @@ After verify-sfguide completes, push any guide changes it produced to `<your-git
 
 ### Stage 1: Request Companion Repo Hand-off to Snowflake-Labs
 
-Once the companion repo is verified and fixed (verify-sfguide completed), request the move to `Snowflake-Labs`:
+Once the companion repo is verified and fixed (sfguide-verify completed), request the move to `Snowflake-Labs`:
 
 1. Confirm the companion repo is fully pushed and up to date at `<your-github-user>/sfguide-<id>`.
 2. Generate a short hand-off request for the user to send through whatever channel they use (ticket, Slack, etc.):
@@ -221,7 +221,7 @@ Share both PR links with the user. Restore any git or `gh auth` settings changed
 ## Stopping Points
 
 - Setup: paths collected, `<id>` derived, repos checked/created
-- Verification: verify-sfguide completed all 4 stages
+- Verification: sfguide-verify completed all 4 stages
 - Stage 1: hand-off requested, confirmed complete before continuing
 - Stage 2: clarity suggestions approved
 - Stage 3: architecture diagram decision made

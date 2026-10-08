@@ -1,9 +1,9 @@
 ---
-name: verify-sfguide
-id: verify-sfguide
+name: sfguide-verify
+id: sfguide-verify
 title: Verify a Snowflake Guide
 summary: Audit, test end to end, and sync-check a Snowflake developer guide and its companion repo before shipping.
-description: "Verify and fix an sfguide (quickstart) before shipping: readiness audit, end-to-end verification, guide-project sync check, and blocker fixes. Use standalone to check guide quality during development, or as a delegate from ship-sfguide. Triggers: verify sfguide, audit sfguide, check sfguide, validate quickstart, sfguide readiness check, is my sfguide ready, check my guide. Do NOT use for writing a new guide from scratch or for general markdown proofreading."
+description: "Verify and fix an sfguide (quickstart) before shipping: readiness audit, end-to-end verification, guide-project sync check, and blocker fixes. Use standalone to check guide quality during development, or as a delegate from sfguide-ship. Triggers: verify sfguide, audit sfguide, check sfguide, validate quickstart, sfguide readiness check, is my sfguide ready, check my guide. Do NOT use for writing a new guide from scratch or for general markdown proofreading."
 authors: Chanin Nantasenamat
 type: snowflake
 status: beta
@@ -21,11 +21,11 @@ prompt: "Verify my sfguide at ~/guides/my-guide before I ship it"
 language: en
 ---
 
-# Verify SF Guide
+# SFGuide Verify
 
 ## Purpose
 
-Quality-gate workflow for an sfguide and its companion project. Runs four sequential stages: readiness audit, end-to-end verification, guide-project sync check, and blocker fixes. Works standalone or as a delegate from `ship-sfguide`.
+Quality-gate workflow for an sfguide and its companion project. Runs four sequential stages: readiness audit, end-to-end verification, guide-project sync check, and blocker fixes. Works standalone or as a delegate from `sfguide-ship`.
 
 Placeholders used below:
 - `<your-github-user>`: the GitHub account that hosts the companion repo before it moves to `Snowflake-Labs`
