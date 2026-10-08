@@ -1,0 +1,6 @@
+[project]
+name = "tutorial-video-thumbnail"
+version = "0.1.0"
+description = "Local image-composition helpers for YouTube thumbnails"
+requires-python = ">=3.10"
+dependencies = ["Pillow>=10,<13", "fonttools>=4.50,<5"]

@@ -1,0 +1,13 @@
+[project]
+name = "tutorial-video-publishing"
+version = "0.1.0"
+description = "Local YouTube publishing metadata and word-grounded chapters"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+alignment = ["whisperx>=3.8,<4"]
+download = ["yt-dlp>=2026.8.19"]
+
+[tool.uv]
+package = false
