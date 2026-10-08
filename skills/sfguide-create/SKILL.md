@@ -32,6 +32,12 @@ Convert technical documents, notebooks, or apps into a Snowflake developer guide
 
 ## Workflow
 
+### Shared Tooling
+
+Locate the installed `sfguide-verify` package and read its `references/workflow-contract.md`. Its helper is the single mechanical validator and ZIP builder for the suite; do not maintain a second implementation. Resolve the installed absolute path rather than assuming sibling directories. If unavailable, report the missing dependency and stop short of claiming validation or packaging success.
+
+Reuse known author, paths, and preferences; ask only for missing values. Companion sources and repository URLs are optional and need not follow a derived naming convention. Creating a guide never authorizes a repository upload or live execution.
+
 ### Step 1: Gather Requirements
 
 Use the available question tool to collect:
@@ -142,7 +148,7 @@ Check each item and report failures:
 - Overview includes prerequisites, learning objectives, and what the reader will build.
 - Prerequisites begin with the Snowflake account link.
 - Conclusion begins with "Congratulations! You've successfully...".
-- No `Duration:` tags or HTML appear in the generated markdown.
+- No `Duration:` tags or HTML appear in prose. Code fences and inline code remain unchanged; the shared Markdown parser excludes them from prose checks.
 - Code snippets are preserved exactly, except for separately approved replacements.
 - Headers do not exceed H4, and H2 headings are at most four words.
 - Every image reference resolves to a packaged file.
@@ -151,7 +157,7 @@ Check each item and report failures:
 
 When a check fails, report the issue and correct formatting within the approved scope. Ask before changing technical content. Do not label the guide ready while blockers remain.
 
-Create the output folder and ZIP without overwriting existing user files:
+Create the output folder without overwriting existing user files:
 
 ```text
 {id}/
@@ -159,7 +165,11 @@ Create the output folder and ZIP without overwriting existing user files:
 └── assets/       # Only referenced images, when present
 ```
 
-Provide a link to the generated ZIP and markdown file, a concise validation summary, and any unresolved gaps. If the environment cannot expose download links, report the exact local paths. Do not paste the entire generated guide into chat.
+Run the shared helper's `validate` command on the exact markdown path, writing a new report outside the guide directory. Supply the actual optional companion path and current/target repository URLs. Follow the returned normalized paths; never append the ID again. Record link and disclosure evidence only after reviewing them. Execution remains UNTESTED because creation does not execute source code.
+
+Use `package --draft` for the initial ZIP. Mechanical failures block packaging; resolve them or deliver only clearly labeled incomplete source files. Do not call a mechanically valid draft fully verified. The helper packages only markdown and referenced raster assets, not reports or source files.
+
+Provide links to the DRAFT ZIP and markdown, the local handoff report path, canonical guide paths, and unresolved checks. Reports may contain local paths and stay outside distributable output. If download links are unavailable, report exact local paths. Do not paste the entire guide into chat. Handoff to `sfguide-verify` is optional and requires the user's requested scope; do not automatically execute the guide or publish it.
 
 ## Metadata Reference
 

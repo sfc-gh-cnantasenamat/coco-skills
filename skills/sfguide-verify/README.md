@@ -1,27 +1,22 @@
 # SFGuide Verify
 
-A Cortex Code skill that checks a Snowflake developer guide (sfguide/quickstart) and its companion repo before shipping.
+Check a guide and optional companion project without publishing anything. Live tests and technical fixes require authorization; missing checks remain UNTESTED.
 
-## How it works
-
-1. **Readiness audit:** frontmatter, folder structure, image references, repo URLs, and formatting rules.
-2. **End-to-end verification:** walks every step as a first-time reader, checks that every run/deploy path has steps and a clean-up step, runs the setup SQL live on a test account, and checks screenshots.
-3. **Sync check:** compares the guide against the live companion repo: code blocks, config resource names, numbers (including text inside images), and README parity.
-4. **Fix blockers:** applies the fixes and pushes them.
-
-Each stage stops for your acknowledgement before moving on.
-
-## Usage
-
-```
-$sfguide-verify Verify my sfguide at ~/guides/my-guide
+```text
+$sfguide-verify Verify ~/guides/my-guide/my-guide.md locally
 ```
 
-You'll be asked for the guide path, the companion repo path, your GitHub user, and a Snowflake connection to a test account.
+The Python 3.10+ helper parses Markdown with markdown-it-py, resolves guide paths, validates metadata and assets, snapshots source files, records evidence, and packages only verified guide content. It performs no network operations or guide execution. Manual attestations record evidence supplied by the caller, not independently verified test results.
 
-## Related
+See [the shared contract](references/workflow-contract.md) for installation, CLI examples, report states, dependency limitations, and draft/release packaging. All three skills use this implementation. Install this package before using creation or shipping; resolve it by skill discovery rather than assuming sibling directories.
 
-- `sfguide-ship` runs this skill first, then polishes and publishes the guide.
+Run regression tests with the dependency-equipped interpreter:
+
+```bash
+python -m unittest discover -s "<verify-skill>/tests" -v
+```
+
+`sfguide-create` produces a draft and handoff report. `sfguide-ship` finalizes URLs/content, obtains fresh verification, checks ZIP and staged-file equality, and publishes only with approval.
 
 ## Author
 
